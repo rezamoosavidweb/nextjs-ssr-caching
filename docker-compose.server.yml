@@ -1,0 +1,39 @@
+# Server deployment for `nextjs-ssr-caching`, exposed on host port 6200.
+#
+# This is a self-contained compose project (its own network, its own Redis) and
+# does NOT touch your other stack (client/admin-v1/chat-ui/admin-v2 on
+# 5200-5500). Only host port 6200 is published; Redis stays internal.
+#
+# On the server:
+#   git clone git@github.com:rezamoosavidweb/nextjs-ssr-caching.git
+#   cd nextjs-ssr-caching
+#   docker compose -f docker-compose.server.yml up -d --build
+#
+# Then open http://<server-ip>:6200
+#
+# Update later with:
+#   git pull && docker compose -f docker-compose.server.yml up -d --build
+services:
+  app:
+    container_name: nextjs-ssr-caching
+    build: .
+    ports:
+      - "6200:3000"
+    environment:
+      NODE_ENV: production
+      # Service-name DNS, resolved inside THIS project's network only.
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: always
+
+  redis:
+    container_name: nextjs-ssr-caching-redis
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

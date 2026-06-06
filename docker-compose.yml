@@ -1,0 +1,26 @@
+# Bring the whole demo up with:  docker compose up --build
+# Then open http://localhost:3000
+#
+# Two services: the Next.js app and a Redis used by the `use cache: remote`
+# data cache and the full-route HTML cache. The app talks to Redis over the
+# compose network (redis://redis:6379); you don't need Redis on your host.
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
